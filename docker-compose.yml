@@ -6,7 +6,7 @@ services:
     image: postgres:15
     restart: always
     environment:
-      POSTGRES_DB: prismeet
+      POSTGRES_DB: internflow
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
