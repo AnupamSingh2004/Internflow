@@ -20,7 +20,7 @@ export default function HomePage() {
   const checkAuthStatus = async () => {
     try {
       const token = localStorage.getItem('accessToken')
-      console.log('Checking auth status with token:', token)
+      console.log('Checking auth status with token:', token) // Added console.log for debugging
       if (!token) {
         setLoading(false)
         return
@@ -33,7 +33,7 @@ export default function HomePage() {
           'Content-Type': 'application/json',
         },
       })
-      console.log('Auth status response:', response)
+      console.log('Auth status response:', response) // Added console.log for debugging
       if (response.ok) {
         const userData = await response.json()
         setUser(userData)
@@ -50,8 +50,12 @@ export default function HomePage() {
 
   const refreshToken = async () => {
     try {
-      const refreshToken = localStorage.getItem('refresh_token')
-      if (!refreshToken) return
+      const refreshToken = localStorage.getItem('refreshToken') // Corrected to 'refreshToken' for consistency
+      if (!refreshToken) {
+          // If no refresh token, clear access token and ensure user is null
+          localStorage.removeItem('accessToken');
+          return;
+      }
 
       const response = await fetch('http://127.0.0.1:8000/api/auth/token/refresh/', {
         method: 'POST',
@@ -64,12 +68,13 @@ export default function HomePage() {
       if (response.ok) {
         const data = await response.json()
         localStorage.setItem('accessToken', data.access)
-        // Try to get user info again
+        // Try to get user info again after successful refresh
         await checkAuthStatus()
       } else {
         // Refresh failed, user needs to login again
         localStorage.removeItem('accessToken')
-        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('refreshToken') // Corrected to 'refreshToken'
+        setUser(null)
       }
     } catch (error) {
       console.error('Error refreshing token:', error)
@@ -78,9 +83,9 @@ export default function HomePage() {
 
   const handleLogout = () => {
     localStorage.removeItem('accessToken')
-    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('refreshToken') // Corrected to 'refreshToken'
     setUser(null)
-    // Optionally redirect to home or login page
+    // Optionally redirect to home or login page, or just reload to reflect state
     window.location.reload()
   }
 
@@ -164,30 +169,33 @@ export default function HomePage() {
             </span>
           </motion.div>
 
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link href="#features" className="text-gray-600 hover:text-emerald-700 transition-colors font-medium relative group">
-              Features
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all duration-300 group-hover:w-full"></span>
+          <nav className="hidden md:flex items-center space-x-6">
+            <Link href="/jobs" className="text-gray-600 hover:text-emerald-600 transition-colors">
+              Jobs
             </Link>
-            <Link href="#companies" className="text-gray-600 hover:text-emerald-700 transition-colors font-medium relative group">
+            <Link href="/internships" className="text-gray-600 hover:text-emerald-600 transition-colors">
+              Internships
+            </Link>
+            <Link href="/competitions" className="text-gray-600 hover:text-emerald-600 transition-colors">
+              Competitions
+            </Link>
+            <Link href="/companies" className="text-emerald-600 font-semibold border-b-2 border-emerald-600 pb-1">
               Companies
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all duration-300 group-hover:w-full"></span>
             </Link>
-            <Link href="#about" className="text-gray-600 hover:text-emerald-700 transition-colors font-medium relative group">
-              About
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-emerald-600 transition-all duration-300 group-hover:w-full"></span>
+            <Link href="/profile" className="text-gray-600 hover:text-emerald-600 transition-colors">
+              Profile
             </Link>
           </nav>
 
           <div className="flex items-center space-x-4">
             {loading ? (
-              // Loading state
+              // Loading state: Show skeleton loaders
               <div className="flex items-center space-x-4">
                 <div className="w-20 h-10 bg-gray-200 rounded animate-pulse"></div>
                 <div className="w-24 h-10 bg-gray-200 rounded animate-pulse"></div>
               </div>
             ) : user ? (
-              // Authenticated user
+              // Authenticated user: Show welcome message and logout button
               <div className="flex items-center space-x-4">
                 <Link href="/dashboard" className="hidden md:flex items-center space-x-2 text-gray-700 hover:text-emerald-700 transition-colors">
                   <User className="w-5 h-5" />
@@ -205,7 +213,7 @@ export default function HomePage() {
                 </motion.div>
               </div>
             ) : (
-              // Non-authenticated user
+              // Non-authenticated user: Show Login and Get Started buttons
               <>
                 <Link href="/login">
                   <Button variant="ghost" className="hover:bg-emerald-50 hover:text-emerald-700 transition-all duration-200">

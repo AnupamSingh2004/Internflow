@@ -28,29 +28,73 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [accessToken, setAccessToken] = useState<string | null>(null);
+    const [refreshToken, setRefreshToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
 
     useEffect(() => {
         const initializeAuth = async () => {
-            const storedToken = localStorage.getItem('accessToken');
-
-            if (storedToken) {
-                setAccessToken(storedToken);
-                // Optionally: verify token with backend here to ensure it's still valid
+            const storedAccessToken = localStorage.getItem('accessToken');
+            const storedRefreshToken = localStorage.getItem('refreshToken');
+            
+            if (storedAccessToken && storedRefreshToken) {
+                try {
+                    // Verify token is still valid
+                    const userData = await verifyToken(storedAccessToken);
+                    setUser(userData);
+                    setAccessToken(storedAccessToken);
+                    setRefreshToken(storedRefreshToken);
+                } catch (error) {
+                    // Token is invalid or expired, try to refresh
+                    try {
+                        const refreshed = await refreshAccessToken();
+                        if (!refreshed) {
+                            logout();
+                        }
+                    } catch (refreshError) {
+                        logout();
+                    }
+                }
             }
             setIsLoading(false);
         };
         initializeAuth();
     }, []);
 
+     const verifyToken = async (token: string): Promise<User> => {
+        const response = await apiRequest('/auth/verify/', 'POST', { token });
+        return response.user;
+    };
+
+    const refreshAccessToken = async (): Promise<boolean> => {
+        const storedRefreshToken = localStorage.getItem('refreshToken');
+        if (!storedRefreshToken) return false;
+
+        try {
+            const data = await apiRequest('/token/refresh/', 'POST', {
+                refresh: storedRefreshToken
+            });
+            
+            if (data.access) {
+                setAccessToken(data.access);
+                localStorage.setItem('accessToken', data.access);
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error('Token refresh failed:', error);
+            return false;
+        }
+    };
+
     const handleAuthSuccess = (data: any) => {
         setAccessToken(data.access);
+        setRefreshToken(data.refresh);
         setUser(data.user);
         localStorage.setItem('accessToken', data.access);
         localStorage.setItem('refreshToken', data.refresh);
+        localStorage.setItem('user', JSON.stringify(data.user));
     };
-
     const login = async (usernameOrEmail: string, password: string) => {
         const data = await apiRequest('/login/', 'POST', { username_or_email: usernameOrEmail, password });
         handleAuthSuccess(data);
