@@ -1,11 +1,14 @@
 from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate,get_user_model
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from rest_framework import serializers, exceptions
 from .tokens import account_activation_token
+from .utils import account_activation_token
 
+
+User = get_user_model()
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
@@ -73,18 +76,41 @@ class LoginSerializer(serializers.Serializer):
 class EmailVerificationSerializer(serializers.Serializer):
     uidb64 = serializers.CharField()
     token = serializers.CharField()
-
+    
     def validate(self, attrs):
         try:
+            # Decode the user ID
             uid = force_str(urlsafe_base64_decode(attrs['uidb64']))
             user = User.objects.get(pk=uid)
-        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            user = None
-
-        if user is not None and account_activation_token.check_token(user, attrs['token']):
+            
+            # Check if user is already active - return success instead of error
+            if user.is_active:
+                attrs['user'] = user
+                attrs['already_verified'] = True
+                return attrs
+            
+            # Verify the token
+            if not account_activation_token.check_token(user, attrs['token']):
+                raise serializers.ValidationError("Invalid or expired verification link.")
+                
             attrs['user'] = user
+            attrs['already_verified'] = False
             return attrs
-        raise serializers.ValidationError('Invalid verification link.', code='authorization')
+            
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            raise serializers.ValidationError("Invalid verification link.")
+        except Exception as e:
+            raise serializers.ValidationError(f"Verification failed: {str(e)}")
+    
+    def save(self):
+        user = self.validated_data['user']
+        already_verified = self.validated_data.get('already_verified', False)
+        
+        if not already_verified:
+            user.is_active = True
+            user.save()
+        
+        return user
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
@@ -99,28 +125,30 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 class PasswordResetConfirmSerializer(serializers.Serializer):
     uidb64 = serializers.CharField()
     token = serializers.CharField()
-    new_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
-    confirm_new_password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    new_password = serializers.CharField(min_length=8, write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
 
     def validate(self, attrs):
-        if attrs['new_password'] != attrs['confirm_new_password']:
-            raise serializers.ValidationError({"new_password": "Passwords do not match."})
         try:
+            # Decode the user ID
             uid = force_str(urlsafe_base64_decode(attrs['uidb64']))
-            self.user = User.objects.get(pk=uid)
+            user = User.objects.get(pk=uid)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
-            self.user = None
-
-        if self.user is None or not default_token_generator.check_token(self.user, attrs['token']):
-            raise serializers.ValidationError('Invalid password reset link.')
+            raise serializers.ValidationError("Invalid reset link.")
         
-        # You might want to add password strength validation here using Django's validators
-        # from django.contrib.auth.password_validation import validate_password
-        # validate_password(attrs['new_password'], self.user)
-
+        # Check if the token is valid using the correct token generator
+        if not default_token_generator.check_token(user, attrs['token']):
+            raise serializers.ValidationError("Invalid or expired reset link.")
+        
+        # Check if passwords match
+        if attrs['new_password'] != attrs['confirm_password']:
+            raise serializers.ValidationError("Passwords do not match.")
+        
+        attrs['user'] = user
         return attrs
 
     def save(self):
-        self.user.set_password(self.validated_data['new_password'])
-        self.user.save()
-        return self.user
+        user = self.validated_data['user']
+        user.set_password(self.validated_data['new_password'])
+        user.save()
+        return user
