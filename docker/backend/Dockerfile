@@ -22,4 +22,4 @@ COPY ../../backend /app
 # Make media/static dirs
 RUN mkdir -p /media /static
 
-CMD ["bash", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+CMD ["bash", "-c", "python manage.py makemigrations authentication && python manage.py migrate && python manage.py createsuperuser && python manage.py runserver 0.0.0.0:8000"]
