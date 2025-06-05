@@ -3,7 +3,7 @@ djoser>=2.1,<2.3
 djangorestframework-simplejwt>=5.2,<5.4
 python-social-auth[django] # Or social-auth-app-django
 social-auth-app-django>=5.2,<5.5 # More common choice
-psycopg2-binary # For PostgreSQL
+psycopg2-binary>=2.9,<3.0 # For PostgreSQL
 django-cors-headers>=3.13,<4.4
 whitenoise>=6.0,<7.0 # For serving static files
 gunicorn>=20.1,<22.0 # For production server
