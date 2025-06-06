@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Email Address</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 300;
+        }
+        
+        .header .icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .greeting {
+            font-size: 18px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        
+        .message {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 30px;
+            line-height: 1.8;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .alternative-link {
+            margin-top: 25px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .alternative-link p {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .link-text {
+            word-break: break-all;
+            font-family: 'Courier New', monospace;
+            background-color: #e9ecef;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #495057;
+        }
+        
+        .footer {
+            background-color: #f8f9fa;
+            padding: 25px 30px;
+            text-align: center;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .footer p {
+            margin: 0;
+            font-size: 14px;
+            color: #6c757d;
+        }
+        
+        .disclaimer {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+            font-size: 12px;
+            color: #adb5bd;
+        }
+        
+        .brand {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+                border-radius: 5px;
+            }
+            
+            .content {
+                padding: 25px 20px;
+            }
+            
+            .header {
+                padding: 25px 15px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .cta-button {
+                display: block;
+                margin: 0 auto;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <span class="icon">✉️</span>
+            <h1>Email Verification</h1>
+        </div>
+        
+        <div class="content">
+            <div class="greeting">
+                Hi {{ user.first_name|default:user.username }},
+            </div>
+            
+            <div class="message">
+                <p>Welcome to <span class="brand">Internflow</span>! Thank you for creating your account.</p>
+                <p>To complete your registration and verify your email address, please click the button below:</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{{ verification_link }}" class="cta-button">Verify Email Address</a>
+            </div>
+            
+            <div class="alternative-link">
+                <p><strong>Having trouble with the button?</strong></p>
+                <p>Copy and paste this link into your browser:</p>
+                <div class="link-text">{{ verification_link }}</div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Thanks for joining us!<br>
+            <span class="brand">The Internflow Team</span></p>
+            
+            <div class="disclaimer">
+                If you did not create an account with us, please ignore this email.<br>
+                This verification link will expire in 24 hours for security purposes.
+            </div>
+        </div>
+    </div>
+</body>
+</html>

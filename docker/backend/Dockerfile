@@ -15,6 +15,7 @@ RUN apt-get update && \
 # Install Python dependencies
 COPY ../../backend/requirements.txt .
 RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN python -m spacy download en_core_web_lg
 
 # Copy project files
 COPY ../../backend /app
@@ -22,4 +23,4 @@ COPY ../../backend /app
 # Make media/static dirs
 RUN mkdir -p /media /static
 
-CMD ["bash", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+CMD ["bash", "-c", "python manage.py makemigrations authentication && python manage.py migrate && python manage.py createsuperuser && python manage.py runserver 0.0.0.0:8000"]

@@ -1,0 +1,27 @@
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% trans "Welcome to Our Awesome Site!" %}</title>
+</head>
+<body>
+    <p>{% blocktrans %}Hi {{ user.first_name }},<br>
+    Welcome to Our Awesome Site! We're thrilled to have you on board.{% endblocktrans %}</p>
+
+    <p>{% trans "Your account has been successfully created." %}</p>
+    {% if user.is_active and not user.is_verified %} {# If activation is required but separate from welcome #}
+        <p>{% trans "Please check your email for a verification link to activate your account if you haven't already." %}</p>
+    {% elif not user.is_active %}
+         <p>{% trans "Please check your email for a verification link to activate your account." %}</p>
+    {% endif %}
+
+    <p>{% trans "You can now log in to your account and start exploring." %}</p>
+    <p><a href="{{ frontend_domain }}/auth/login">{% trans "Login Now" %}</a></p> {# Assuming frontend_domain is passed in context #}
+
+    <p>{% trans "If you have any questions, feel free to reach out to our support team." %}</p>
+
+    <p>{% trans "Best regards," %}<br>
+    {% trans "The Our Awesome Site Team" %}</p>
+</body>
+</html>

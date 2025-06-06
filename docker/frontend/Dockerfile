@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY ../frontend/package*.json /app/
-RUN npm ci
+RUN npm config set registry https://registry.npmmirror.com/ && npm ci
 
 COPY ../frontend /app
 
