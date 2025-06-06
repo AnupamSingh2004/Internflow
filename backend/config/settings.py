@@ -32,7 +32,7 @@ INSTALLED_APPS = [
 ]
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_ROOT = os.path.join(BASE_DIR, '/media')
 
 
 MIDDLEWARE = [
@@ -43,6 +43,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'user_auth.views.RoleCheckMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -78,8 +79,9 @@ DATABASES = {
     }
 }
 
+AUTH_USER_MODEL = 'user_auth.User'
+
 # If you use a custom user model
-# AUTH_USER_MODEL = 'user_auth.CustomUser'
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -124,7 +126,7 @@ SIMPLE_JWT = {
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': False,
-    'UPDATE_LAST_LOGIN': False,
+    'UPDATE_LAST_LOGIN': True,
     
     'ALGORITHM': 'HS256',
     'SIGNING_KEY': SECRET_KEY,
@@ -150,6 +152,7 @@ SIMPLE_JWT = {
     'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
     'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+    'TOKEN_OBTAIN_SERIALIZER': 'user_auth.serializers.CustomTokenObtainPairSerializer',
 }
 
 # CORS settings (Adjust for your Next.js frontend URL)
@@ -172,8 +175,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'androhacker1234@gmail.com'
-EMAIL_HOST_PASSWORD =  'csjp uvkk mkgh ewnm' # Use app password for Gmail
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD =  os.getenv("EMAIL_HOST_PASSWORD") # Use app password for Gmail
 DEFAULT_FROM_EMAIL = 'noreply@internflow.com'
 
 # Frontend URL for email links

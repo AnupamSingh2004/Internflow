@@ -1,9 +1,10 @@
 from django.urls import path
 from .views import (
     RegisterView, LoginView, EmailVerifyView, UserProfileView,
-    PasswordResetRequestView, PasswordResetConfirmView
+    PasswordResetRequestView, PasswordResetConfirmView,user_list, update_user_role,get_current_user,refresh_token
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
+
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
@@ -22,4 +23,9 @@ urlpatterns = [
     path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
 
     path('profile/', UserProfileView.as_view(), name='user-profile'), # Example protected route
+
+    path('admin/users/', user_list, name='user-list'),
+    path('admin/users/<int:user_id>/role/', update_user_role, name='update-user-role'),
+    path('me/', get_current_user, name='current_user'),
+    path('refresh/', refresh_token, name='refresh_token'), 
 ]

@@ -10,8 +10,46 @@ from .serializers import (
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.parsers import MultiPartParser, FormParser
 
 User = get_user_model()
+
+
+
+
+class ProfilePictureUploadView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        user = request.user
+        profile = UserProfile.objects.get(user=user)
+        
+        if 'profile_picture' not in request.FILES:
+            return Response({'error': 'No file provided'}, status=400)
+        
+        profile.profile_picture = request.FILES['profile_picture']
+        profile.save()
+        
+        return Response({
+            'profile_picture_url': profile.profile_picture.url
+        }, status=200)
+    
+    def delete(self, request):
+        user = request.user
+        profile = UserProfile.objects.get(user=user)
+        
+        if not profile.profile_picture:
+            return Response({'error': 'No profile picture to delete'}, status=400)
+        
+        # Delete the file from storage
+        profile.profile_picture.delete(save=False)
+        profile.profile_picture = None
+        profile.save()
+        
+        return Response({'message': 'Profile picture deleted'}, status=200)
+    
 
 class UserProfileDetailView(generics.RetrieveUpdateAPIView):
     queryset = UserProfile.objects.all()

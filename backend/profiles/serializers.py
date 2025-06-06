@@ -3,7 +3,41 @@ from .models import UserProfile, Education, Skill, Certification, Project, Proje
 from django_countries.serializer_fields import CountryField
 from django.contrib.auth import get_user_model
 
+# serializers.py - Add this custom JWT serializer
+
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
+
+
 User = get_user_model()
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        
+        # Add custom claims
+        token['username'] = user.username
+        token['email'] = user.email
+        token['role'] = user.role
+        
+        return token
+
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        
+        # Add extra responses here if needed
+        data['user'] = {
+            'id': self.user.id,
+            'username': self.user.username,
+            'email': self.user.email,
+            'role': self.user.role,
+            'first_name': self.user.first_name,
+            'last_name': self.user.last_name,
+        }
+        
+        return data
+
+
 
 
 class UserProfileSerializer(serializers.ModelSerializer):

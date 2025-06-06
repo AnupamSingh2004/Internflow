@@ -4,6 +4,8 @@ from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
 )
+from django.conf import settings
+from django.conf.urls.static import static
 from .views import ResumeParseView
 
 urlpatterns = [
@@ -12,3 +14,6 @@ urlpatterns = [
     path('api/profile/', include('profiles.urls')),
     path('api/parse-resume/', ResumeParseView.as_view(), name='parse-resume'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
