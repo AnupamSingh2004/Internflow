@@ -3,10 +3,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
+from rest_framework.permissions import AllowAny
 from .parser import parse_resume # Import your parser function
 
 class ResumeParseView(APIView):
     parser_classes = (MultiPartParser, FormParser)
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
 
     def post(self, request, *args, **kwargs):
         if 'resume' not in request.FILES:

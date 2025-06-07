@@ -12,8 +12,209 @@ from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
 from rest_framework import serializers
 import logging
+from django.contrib.sessions.models import Session
+from django.contrib.auth import get_user_model
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser
+# Add these views to your views.py file
+
+from django.utils import timezone
+from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+
+# Add this import at the top
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_current_user(request):
+    """Get current authenticated user with fresh role data"""
+    try:
+        # Get fresh user data from database to ensure role is current
+        fresh_user = User.objects.get(id=request.user.id)
+        return Response({
+            'id': fresh_user.id,
+            'username': fresh_user.username,
+            'email': fresh_user.email,
+            'first_name': fresh_user.first_name,
+            'last_name': fresh_user.last_name,
+            'role': fresh_user.role,
+            'is_active': fresh_user.is_active,
+        })
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=404)
+
+@api_view(['POST'])
+@permission_classes([])  # Allow any - refresh token handles auth
+def refresh_token(request):
+    """Refresh JWT access token"""
+    try:
+        serializer = TokenRefreshSerializer(data=request.data)
+        if serializer.is_valid():
+            # Get the user from the refresh token to include fresh role data
+            refresh_token = serializer.validated_data.get('refresh')
+            if refresh_token:
+                try:
+                    from rest_framework_simplejwt.tokens import RefreshToken
+                    token = RefreshToken(refresh_token)
+                    user_id = token.payload.get('user_id')
+                    
+                    # Get fresh user data
+                    user = User.objects.get(id=user_id)
+                    
+                    # Generate new tokens with fresh user data
+                    new_refresh = RefreshToken.for_user(user)
+                    
+                    return Response({
+                        'access': str(new_refresh.access_token),
+                        'refresh': str(new_refresh),
+                        'user': {
+                            'id': user.id,
+                            'username': user.username,
+                            'email': user.email,
+                            'role': user.role,
+                        }
+                    })
+                except (User.DoesNotExist, TokenError):
+                    return Response({'error': 'Invalid refresh token'}, status=400)
+            else:
+                return Response(serializer.validated_data)
+        else:
+            return Response(serializer.errors, status=400)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+# Fix the missing import in invalidate_user_sessions
+def invalidate_user_sessions(user):
+    """Invalidate all sessions for a specific user"""
+    from django.utils import timezone  # Add this import
+    
+    # Get all sessions
+    sessions = Session.objects.filter(expire_date__gte=timezone.now())
+    
+    for session in sessions:
+        session_data = session.get_decoded()
+        if session_data.get('_auth_user_id') == str(user.id):
+            session.delete()
+
+# Optional: Add JWT token blacklisting for more security
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def logout_user(request):
+    """Logout user and blacklist their tokens"""
+    try:
+        # Get the refresh token from request
+        refresh_token = request.data.get('refresh')
+        
+        if refresh_token:
+            try:
+                from rest_framework_simplejwt.tokens import RefreshToken
+                token = RefreshToken(refresh_token)
+                token.blacklist()  # This requires token blacklist to be enabled
+            except Exception:
+                pass  # Token might already be blacklisted or invalid
+        
+        # Also invalidate sessions
+        invalidate_user_sessions(request.user)
+        
+        return Response({'message': 'Successfully logged out'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+
 
 logger = logging.getLogger(__name__)
+
+User = get_user_model()
+
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def user_list(request):
+    users = User.objects.all().values('id', 'username', 'email', 'role')
+    return Response(users)
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def update_user_role(request, user_id):
+    """Update user role and manage Django admin permissions"""
+    try:
+        # Check if current user is admin
+        if not request.user.role == 'admin':
+            return Response({'error': 'Permission denied'}, status=403)
+        
+        user_to_update = User.objects.get(id=user_id)
+        new_role = request.data.get('role')
+        
+        if new_role not in ['admin', 'general']:
+            return Response({'error': 'Invalid role'}, status=400)
+        
+        # Update the role
+        old_role = user_to_update.role
+        user_to_update.role = new_role
+        
+        # IMPORTANT: Update Django admin permissions based on role
+        if new_role == 'admin':
+            user_to_update.is_staff = True
+            # Optionally make them superuser for full admin access
+            # user_to_update.is_superuser = True
+        else:  # general user
+            user_to_update.is_staff = False
+            user_to_update.is_superuser = False
+        
+        user_to_update.save()
+        
+        # Invalidate user's sessions if role changed
+        if old_role != new_role:
+            invalidate_user_sessions(user_to_update)
+        
+        return Response({
+            'message': f'Role updated successfully. User {"now has" if new_role == "admin" else "no longer has"} Django admin access.',
+            'user': {
+                'id': user_to_update.id,
+                'username': user_to_update.username,
+                'role': user_to_update.role,
+                'is_staff': user_to_update.is_staff,
+                'is_superuser': user_to_update.is_superuser,
+            }
+        })
+        
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)
+
+def invalidate_user_sessions(user):
+    """Invalidate all sessions for a specific user"""
+    # Get all sessions
+    sessions = Session.objects.filter(expire_date__gte=timezone.now())
+    
+    for session in sessions:
+        session_data = session.get_decoded()
+        if session_data.get('_auth_user_id') == str(user.id):
+            session.delete()
+    
+    
+class RoleCheckMiddleware:
+    """Middleware to ensure role is always fresh from database"""
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated:
+            # Refresh user from database to get current role
+            try:
+                fresh_user = User.objects.get(id=request.user.id)
+                request.user.role = fresh_user.role
+            except User.DoesNotExist:
+                pass
+        
+        response = self.get_response(request)
+        return response
+
 
 class EmailVerifyView(generics.GenericAPIView):
     permission_classes = (permissions.AllowAny,)

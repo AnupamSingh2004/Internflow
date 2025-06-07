@@ -3,7 +3,7 @@ from .views import (
     UserProfileDetailView, EducationListView, EducationDetailView,
     SkillListView, SkillDetailView, CertificationListView,
     CertificationDetailView, ProjectListView, ProjectDetailView,
-    CompleteProfileView
+    CompleteProfileView,ProfilePictureUploadView
 )
 
 urlpatterns = [
@@ -16,5 +16,7 @@ urlpatterns = [
     path('certifications/<int:pk>/', CertificationDetailView.as_view(), name='certification-detail'),
     path('projects/', ProjectListView.as_view(), name='project-list'),
     path('projects/<int:pk>/', ProjectDetailView.as_view(), name='project-detail'),
+    path('profile-picture/', ProfilePictureUploadView.as_view(), name='profile-picture-upload'),
     path('complete-profile/', CompleteProfileView.as_view(), name='complete-profile'),
+    
 ]
