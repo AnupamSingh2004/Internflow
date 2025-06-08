@@ -1,5 +1,5 @@
 // lib/api.ts
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // Helper function to get token (only works on client side)
 const getAuthToken = (): string | null => {
@@ -9,7 +9,7 @@ const getAuthToken = (): string | null => {
 
 export async function apiRequest(endpoint: string, method: string = 'GET', data: any = null, token: string | null = null) {
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json'
   };
   
   // Use provided token or get from localStorage
@@ -88,20 +88,21 @@ export const refreshAuthToken = async () => {
   }
 };
 
-// Updated updateUserRole with session invalidation handling
-export const updateUserRole = async (userId: number, newRole: string) => {
+export const updateUserRole = async (userId: number, newRole: string, currentRole: string) => {
   try {
+    // Prevent role switching between student and company
+    if ((currentRole === 'student' && newRole === 'company') || 
+        (currentRole === 'company' && newRole === 'student')) {
+      throw new Error('Cannot switch between student and company roles');
+    }
+
     const response = await apiRequest(`/admin/users/${userId}/role/`, 'PATCH', { role: newRole });
     
     // If updating current user's role, refresh their session
     const currentUser = await getCurrentUser().catch(() => null);
-    if (currentUser && currentUser.id.toString() === userId) {
-      // Option 1: Force logout and re-login
+    if (currentUser && currentUser.id.toString() === userId.toString()) {
       localStorage.removeItem('accessToken');
       window.location.href = '/login?message=role-updated';
-      
-      // Option 2: Try to refresh token (if your backend supports it)
-      // await refreshAuthToken();
     }
     
     return response;
@@ -115,8 +116,21 @@ export const updateUserRole = async (userId: number, newRole: string) => {
 
 export const verifyCompany = async (userId: string, verified: boolean) => {
   try {
-    const response = await apiRequest(`/admin/companies/${userId}/verify/`, 'PATCH', { verified });
-    return response;
+    const response = await fetch(`${API_BASE_URL}/admin/companies/${userId}/verify/`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+      },
+      body: JSON.stringify({ verified }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to update verification status');
+    }
+
+    return await response.json();
   } catch (error) {
     console.error('Error verifying company:', error);
     throw error;
@@ -126,20 +140,25 @@ export const verifyCompany = async (userId: string, verified: boolean) => {
 // Fixed deleteUser function - correct endpoint
 export const deleteUser = async (userId: string) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/`, {
-      method: 'DELETE',
-      credentials: 'include', // Important for cookies/session
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await apiRequest(
+      `/admin/users/${userId}/`, 
+      'DELETE',
+      null, // No body needed for DELETE
+      localStorage.getItem('accessToken')
+    );
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to delete user');
+    }
+    
     return response;
   } catch (error) {
     console.error('Error deleting user:', error);
     throw error;
   }
 };
+
 
 export const getAnalytics = async () => {
   try {

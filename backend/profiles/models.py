@@ -4,6 +4,40 @@ from django_countries.fields import CountryField
 
 User = get_user_model()
 
+class StudentProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student_profile')
+    college = models.CharField(max_length=255)
+    degree = models.CharField(max_length=100)
+    branch = models.CharField(max_length=100, blank=True, null=True)
+    graduation_year = models.IntegerField(blank=True, null=True)
+    skills = models.JSONField(default=list, blank=True)
+    resume_link = models.URLField(blank=True, null=True)
+    portfolio_link = models.URLField(blank=True, null=True)
+    linkedin = models.URLField(blank=True, null=True)
+    github = models.URLField(blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username}'s Student Profile"
+
+class CompanyProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='company_profile')
+    company_name = models.CharField(max_length=255)
+    website = models.URLField()
+    industry = models.CharField(max_length=100, blank=True, null=True)
+    location = models.CharField(max_length=100, blank=True, null=True)
+    contact_number = models.CharField(max_length=20, blank=True, null=True)
+    verified = models.BooleanField(default=False)
+    about = models.TextField(blank=True, null=True)
+    company_logo = models.ImageField(upload_to='company_logos/', blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.company_name}'s Company Profile"
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     professional_title = models.CharField(max_length=100, blank=True, null=True)

@@ -17,7 +17,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser
 # Add these views to your views.py file
-
+from rest_framework.views import APIView
 from django.utils import timezone
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
@@ -26,6 +26,54 @@ from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 # Add this import at the top
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
+
+from django.contrib.auth import authenticate
+from rest_framework import generics, status, permissions
+from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
+from .serializers import RegisterSerializer, LoginSerializer
+from .models import User
+from .utils import send_verification_email
+from rest_framework.permissions import AllowAny
+from profiles.models import StudentProfile, CompanyProfile  # For profile creation during registration
+from profiles.serializers import StudentProfileSerializer, CompanyProfileSerializer  # For including profile in response
+from rest_framework import permissions, status
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from profiles.models import CompanyProfile
+
+class VerifyCompanyView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+    
+    def patch(self, request, user_id):
+        try:
+            company_profile = CompanyProfile.objects.get(user_id=user_id)
+            new_verified_status = request.data.get('verified')
+            
+            if new_verified_status is None:
+                return Response(
+                    {"error": "Verified status is required"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Allow both verifying and unverifying
+            company_profile.verified = new_verified_status
+            company_profile.save()
+            
+            return Response(
+                {
+                    "message": f"Company {'verified' if company_profile.verified else 'unverified'} successfully",
+                    "verified": company_profile.verified
+                },
+                status=status.HTTP_200_OK
+            )
+        except CompanyProfile.DoesNotExist:
+            return Response(
+                {"error": "Company profile not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -130,11 +178,31 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
-@api_view(['GET'])
-@permission_classes([IsAdminUser])
-def user_list(request):
-    users = User.objects.all().values('id', 'username', 'email', 'role')
-    return Response(users)
+class UserListView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+    
+    def get(self, request):
+        users = User.objects.all()
+        data = []
+        
+        for user in users:
+            user_data = {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'role': user.role,
+                'company_profile': None
+            }
+            
+            if hasattr(user, 'company_profile'):
+                user_data['company_profile'] = {
+                    'verified': user.company_profile.verified,
+                    'company_name': user.company_profile.company_name
+                }
+            
+            data.append(user_data)
+        
+        return Response(data)
 
 
 @api_view(['PATCH'])
@@ -197,6 +265,44 @@ def invalidate_user_sessions(user):
         if session_data.get('_auth_user_id') == str(user.id):
             session.delete()
     
+
+class DeleteUserView(APIView):
+    permission_classes = [permissions.IsAdminUser]
+    
+    def delete(self, request, user_id):
+        try:
+            # Prevent deleting yourself
+            if str(request.user.id) == user_id:
+                return Response(
+                    {"error": "You cannot delete your own account"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            user = User.objects.get(id=user_id)
+            
+            # Prevent deleting other admins
+            if user.is_admin() and not request.user.is_superuser:
+                return Response(
+                    {"error": "Only superusers can delete other admin accounts"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            user.delete()
+            return Response(
+                {"message": "User deleted successfully"},
+                status=status.HTTP_204_NO_CONTENT
+            )
+            
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
 class RoleCheckMiddleware:
     """Middleware to ensure role is always fresh from database"""
@@ -286,7 +392,7 @@ class EmailVerifyView(generics.GenericAPIView):
 
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
-    permission_classes = (permissions.AllowAny,)
+    permission_classes = (AllowAny,)
     serializer_class = RegisterSerializer
 
     def create(self, request, *args, **kwargs):
@@ -297,10 +403,28 @@ class RegisterView(generics.CreateAPIView):
         # Send verification email
         send_verification_email(user)
         
-        return Response({
-            "user": RegisterSerializer(user, context=self.get_serializer_context()).data, # Exclude password
+        response_data = {
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "role": user.role,
+            },
             "message": "User created successfully. Please check your email to verify your account."
-        }, status=status.HTTP_201_CREATED)
+        }
+        
+        # Add profile data to response based on role
+        if user.is_student():
+            profile = StudentProfile.objects.get(user=user)
+            response_data['profile'] = StudentProfileSerializer(profile).data
+        elif user.is_company():
+            profile = CompanyProfile.objects.get(user=user)
+            response_data['profile'] = CompanyProfileSerializer(profile).data
+        
+        return Response(response_data, status=status.HTTP_201_CREATED)
+
 
 class LoginView(generics.GenericAPIView):
     permission_classes = (permissions.AllowAny,)
@@ -312,7 +436,8 @@ class LoginView(generics.GenericAPIView):
         user = serializer.validated_data['user']
         
         refresh = RefreshToken.for_user(user)
-        return Response({
+        
+        response_data = {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
             'user': {
@@ -321,8 +446,19 @@ class LoginView(generics.GenericAPIView):
                 'email': user.email,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
+                'role': user.role,
             }
-        })
+        }
+        
+        # Add profile data based on user role
+        if user.is_student():
+            profile = StudentProfile.objects.get(user=user)
+            response_data['student_profile'] = StudentProfileSerializer(profile).data
+        elif user.is_company():
+            profile = CompanyProfile.objects.get(user=user)
+            response_data['company_profile'] = CompanyProfileSerializer(profile).data
+        
+        return Response(response_data)
 
 
 

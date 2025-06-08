@@ -9,7 +9,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-default-secret-key') # Keep your actual secret key in .env
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS =  ['localhost', '127.0.0.1', 'your-production-domain.com']
+ALLOWED_HOSTS =  ['localhost:3000', '127.0.0.1', 'your-production-domain.com']
 
 
 INSTALLED_APPS = [

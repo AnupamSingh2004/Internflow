@@ -7,12 +7,50 @@ from django.contrib.auth import get_user_model
 
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
+from .models import StudentProfile,CompanyProfile
 
 
 User = get_user_model()
 
 
+class StudentProfileSerializer(serializers.ModelSerializer):
+    college = serializers.CharField(required=False)
+    degree = serializers.CharField(required=False)
+    branch = serializers.CharField(required=False, allow_blank=True)
+    graduation_year = serializers.IntegerField(required=False, allow_null=True)
+    skills = serializers.JSONField(required=False)
+    resume_link = serializers.URLField(required=False, allow_blank=True)
+    portfolio_link = serializers.URLField(required=False, allow_blank=True)
+    linkedin = serializers.URLField(required=False, allow_blank=True)
+    github = serializers.URLField(required=False, allow_blank=True)
+    bio = serializers.CharField(required=False, allow_blank=True)
 
+    class Meta:
+        model = StudentProfile
+        fields = [
+            'id', 'college', 'degree', 'branch', 'graduation_year',
+            'skills', 'resume_link', 'portfolio_link', 'linkedin',
+            'github', 'bio', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+class CompanyProfileSerializer(serializers.ModelSerializer):
+    company_name = serializers.CharField(required=False)
+    website = serializers.URLField(required=False)
+    industry = serializers.CharField(required=False, allow_blank=True)
+    location = serializers.CharField(required=False, allow_blank=True)
+    contact_number = serializers.CharField(required=False, allow_blank=True)
+    about = serializers.CharField(required=False, allow_blank=True)
+    company_logo = serializers.ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = CompanyProfile
+        fields = [
+            'id', 'company_name', 'website', 'industry', 'location',
+            'contact_number', 'verified', 'about', 'company_logo',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'verified', 'created_at', 'updated_at']
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod

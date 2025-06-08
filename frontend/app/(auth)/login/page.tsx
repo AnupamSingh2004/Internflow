@@ -15,7 +15,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
-    emailOrUsername: '',
+    username_or_email: '',
     password: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -55,7 +55,7 @@ export default function LoginPage() {
       const newErrors = { ...prevErrors };
       delete newErrors[id];
       // Clear non-field errors if the user starts typing again
-      if (id === 'emailOrUsername' || id === 'password') {
+      if (id === 'username_or_email' || id === 'password') {
         delete newErrors.non_field_errors;
       }
       return newErrors;
@@ -65,8 +65,8 @@ export default function LoginPage() {
   const validateForm = () => {
     let newErrors: Record<string, string> = {};
 
-    if (!formData.emailOrUsername.trim()) {
-      newErrors.emailOrUsername = 'Email or Username is required.';
+    if (!formData.username_or_email.trim()) {
+      newErrors.username_or_email = 'Email or Username is required.';
     }
     if (!formData.password.trim()) {
       newErrors.password = 'Password is required.';
@@ -87,10 +87,10 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      await login(formData.emailOrUsername, formData.password);
+      await login(formData.username_or_email, formData.password);
       // Login successful, AuthContext will handle setting user and token
       // and the useEffect above will redirect
-      router.push('/dashboard'); // Redirect to dashboard or appropriate page
+      router.push('/'); // Redirect to dashboard or appropriate page
     } catch (err: any) {
       console.error('Login error:', err);
       if (err) {
@@ -102,8 +102,8 @@ export default function LoginPage() {
           setErrors({ non_field_errors: err.message });
         } else if (err.username || err.email || err.password) { // Field-specific errors
             const fieldErrors: Record<string, string> = {};
-            if (err.username) fieldErrors.emailOrUsername = err.username.join(' ');
-            if (err.email) fieldErrors.emailOrUsername = err.email.join(' '); // If backend returns email error for username/email field
+            if (err.username) fieldErrors.username_or_email = err.username.join(' ');
+            if (err.email) fieldErrors.username_or_email = err.email.join(' '); // If backend returns email error for username/email field
             if (err.password) fieldErrors.password = err.password.join(' ');
             setErrors(fieldErrors);
         } else {
@@ -206,18 +206,18 @@ export default function LoginPage() {
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="emailOrUsername" className="text-gray-700 font-medium">
+                  <Label htmlFor="username_or_email" className="text-gray-700 font-medium">
                     Email or Username
                   </Label>
                   <Input
-                    id="emailOrUsername"
+                    id="username_or_email"
                     type="text" // Can be text as it accepts both email and username
                     placeholder="Enter your email or username"
-                    className={`h-12 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500 ${errors.emailOrUsername ? 'border-red-500' : ''}`}
-                    value={formData.emailOrUsername}
+                    className={`h-12 border-gray-200 focus:border-emerald-500 focus:ring-emerald-500 ${errors.username_or_email ? 'border-red-500' : ''}`}
+                    value={formData.username_or_email}
                     onChange={handleChange}
                   />
-                  {errors.emailOrUsername && <p className="text-red-500 text-sm">{errors.emailOrUsername}</p>}
+                  {errors.username_or_email && <p className="text-red-500 text-sm">{errors.username_or_email}</p>}
                 </div>
 
                 <div className="space-y-2">
