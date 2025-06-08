@@ -1,34 +1,154 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+// lib/api.ts
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000';
+
+// Helper function to get token (only works on client side)
+const getAuthToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem("accessToken");
+};
 
 export async function apiRequest(endpoint: string, method: string = 'GET', data: any = null, token: string | null = null) {
-    const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-    };
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  // Use provided token or get from localStorage
+  const authToken = token || getAuthToken();
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
+  const config: RequestInit = {
+    method,
+    headers,
+    credentials: 'include', // Include cookies for session auth
+  };
+
+  if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+    config.body = JSON.stringify(data);
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-
-    const config: RequestInit = {
-        method,
-        headers,
-    };
-
-    if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-        config.body = JSON.stringify(data);
-    }
-
-    try {
-        const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-        const responseData = await response.json();
-
-        if (!response.ok) {
-            // Pass along the error messages from the backend
-            throw responseData || { message: `Error: ${response.status} ${response.statusText}` };
-        }
-        return responseData;
-    } catch (error: any) {
-        console.error(`API request failed: ${method} ${endpoint}`, error);
-        // Rethrow the error so UI can handle it, ensure it's in a consistent format
-        throw error.errors || error.detail || error.message || { message: "An unknown error occurred" };
-    }
+    
+    return await response.json();
+  } catch (error: any) {
+    console.error(`API request failed: ${method} ${endpoint}`, error);
+    throw error;
+  }
 }
+
+export const getUsers = async (): Promise<Array<{
+  id: number;
+  username: string;
+  email: string;
+  role: string;
+}>> => {
+  try {
+    // Use consistent endpoint - choose one that works with your backend
+    // Option 1: If your backend uses /api/auth/admin/users
+    const response = await apiRequest('/admin/users');
+    
+    // Option 2: If your backend uses /api/admin/users (uncomment this and comment above)
+    // const response = await apiRequest('/api/admin/users');
+    
+    return response;
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    throw error;
+  }
+};
+
+export const getCurrentUser = async () => {
+  try {
+    const response = await apiRequest('/api/auth/me');
+    return response;
+  } catch (error) {
+    console.error('Error fetching current user:', error);
+    throw error;
+  }
+};
+
+// Add function to refresh auth token
+export const refreshAuthToken = async () => {
+  try {
+    const response = await apiRequest('/api/auth/refresh', 'POST');
+    if (response.access) {
+      localStorage.setItem('accessToken', response.access);
+    }
+    return response;
+  } catch (error) {
+    console.error('Error refreshing token:', error);
+    throw error;
+  }
+};
+
+// Updated updateUserRole with session invalidation handling
+export const updateUserRole = async (userId: number, newRole: string) => {
+  try {
+    const response = await apiRequest(`/admin/users/${userId}/role/`, 'PATCH', { role: newRole });
+    
+    // If updating current user's role, refresh their session
+    const currentUser = await getCurrentUser().catch(() => null);
+    if (currentUser && currentUser.id.toString() === userId) {
+      // Option 1: Force logout and re-login
+      localStorage.removeItem('accessToken');
+      window.location.href = '/login?message=role-updated';
+      
+      // Option 2: Try to refresh token (if your backend supports it)
+      // await refreshAuthToken();
+    }
+    
+    return response;
+  } catch (error) {
+    console.error('Error updating user role:', error);
+    throw error;
+  }
+};
+
+// Add these to your existing lib/api.ts
+
+export const verifyCompany = async (userId: string, verified: boolean) => {
+  try {
+    const response = await apiRequest(`/admin/companies/${userId}/verify/`, 'PATCH', { verified });
+    return response;
+  } catch (error) {
+    console.error('Error verifying company:', error);
+    throw error;
+  }
+};
+
+// Fixed deleteUser function - correct endpoint
+export const deleteUser = async (userId: string) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/admin/users/${userId}/`, {
+      method: 'DELETE',
+      credentials: 'include', // Important for cookies/session
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('accessToken')}`,
+        'Content-Type': 'application/json',
+      },
+    });
+    return response;
+  } catch (error) {
+    console.error('Error deleting user:', error);
+    throw error;
+  }
+};
+
+export const getAnalytics = async () => {
+  try {
+    const response = await apiRequest('/admin/analytics/');
+    return response;
+  } catch (error) {
+    console.error('Error fetching analytics:', error);
+    throw error;
+  }
+};
+
+

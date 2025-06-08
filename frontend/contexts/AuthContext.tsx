@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Potentially store refresh token in localStorage or httpOnly cookie (more complex setup)
         // localStorage.setItem('refreshToken', data.refresh);
     };
-
+    
     const login = async (usernameOrEmail: string, password: string) => {
         const data = await apiRequest('/login/', 'POST', { username_or_email: usernameOrEmail, password });
         handleAuthSuccess(data);

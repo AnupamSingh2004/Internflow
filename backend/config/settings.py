@@ -9,7 +9,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'your-default-secret-key') # Keep your actual secret key in .env
 DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS =  ['localhost', '127.0.0.1', 'your-production-domain.com']
 
 
 INSTALLED_APPS = [
@@ -157,7 +157,8 @@ SIMPLE_JWT = {
 
 # CORS settings (Adjust for your Next.js frontend URL)
 CORS_ALLOWED_ORIGINS = [
-    os.getenv('FRONTEND_URL', 'http://localhost:3000'),
+    "http://localhost:3000",  # Your Next.js dev server
+    "http://127.0.0.1:3000",
 ]
 CORS_ALLOW_CREDENTIALS = True # If you plan to use cookies for auth (e.g. httpOnly refresh token)
 
