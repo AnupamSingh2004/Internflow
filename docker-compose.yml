@@ -19,8 +19,6 @@ services:
     build:
       context: .
       dockerfile: docker/backend/Dockerfile
-    environment:
-      - CHROMEDRIVER_PATH=/usr/bin/chromedriver
     env_file:
       - ./.env
     volumes:
@@ -38,7 +36,6 @@ services:
       - "8000:8000"
     depends_on:
       - db
-      - selenium-chrome
 
   # Next.js Frontend (dev)
   frontend:

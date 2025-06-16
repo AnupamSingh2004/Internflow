@@ -71,7 +71,7 @@ class JobScraperAPI:
                     title=job_data.get('title', 'N/A'),
                     company=job_data.get('company', {}).get('display_name', 'N/A'),
                     location=job_data.get('location', {}).get('display_name', 'N/A'),
-                    description=job_data.get('description', 'N/A')[:500] + "...",
+                    description=job_data.get('description', 'N/A'),
                     apply_link=job_data.get('redirect_url', 'N/A'),
                     source_url=job_data.get('redirect_url', 'N/A'),
                     platform="Adzuna",
@@ -110,7 +110,7 @@ class JobScraperAPI:
                     title=job_data.get('jobTitle', 'N/A'),
                     company=job_data.get('employerName', 'N/A'),
                     location=job_data.get('locationName', 'N/A'),
-                    description=job_data.get('jobDescription', 'N/A')[:500] + "...",
+                    description=job_data.get('jobDescription', 'N/A'),
                     apply_link=job_data.get('jobUrl', 'N/A'),
                     source_url=job_data.get('jobUrl', 'N/A'),
                     platform="Reed",
@@ -154,7 +154,7 @@ class JobScraperAPI:
                     title=match_job.get('PositionTitle', 'N/A'),
                     company=match_job.get('OrganizationName', 'US Government'),
                     location=f"{match_job.get('PositionLocationDisplay', 'N/A')}",
-                    description=match_job.get('QualificationSummary', 'N/A')[:500] + "...",
+                    description=match_job.get('QualificationSummary', 'N/A'),
                     apply_link=match_job.get('ApplyURI', ['N/A'])[0] if match_job.get('ApplyURI') else 'N/A',
                     source_url=match_job.get('PositionURI', 'N/A'),
                     platform="USAJobs.gov",
@@ -374,7 +374,7 @@ class JobAggregator:
                 print(f"Salary: {job.salary}")
             if job.posted_date:
                 print(f"Posted: {job.posted_date}")
-            print(f"Description: {job.description[:200]}...")
+            print(f"Description: {job.description}")
             print(f"{'─'*50}\n")
 
     def save_to_json(self, jobs: List[Job], filename: str = "jobs.json"):
