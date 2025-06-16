@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  job-scraper-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - ADZUNA_APP_ID=${ADZUNA_APP_ID}
+      - ADZUNA_API_KEY=${ADZUNA_API_KEY}
+      - REED_API_KEY=${REED_API_KEY}
+      - USAJOBS_EMAIL=${USAJOBS_EMAIL}
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
