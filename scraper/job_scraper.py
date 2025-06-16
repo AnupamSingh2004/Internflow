@@ -132,7 +132,8 @@ class JobScraperAPI:
         
         headers = {
             'Host': 'data.usajobs.gov',
-            'User-Agent': os.getenv('USAJOBS_EMAIL', 'your-email@example.com')  # Replace with your email
+            'User-Agent': os.getenv('USAJOBS_EMAIL', 'divanshu0212@gmail.com'),  # Replace with your email
+            "Authorization-Key": os.getenv('authkey')  
         }
         
         params = {

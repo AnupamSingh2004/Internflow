@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InternFlow Jobs - Job Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .search-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .search-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .search-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+        }
+
+        .loading .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .results-header {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .results-header h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .job-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+            transition: transform 0.2s ease;
+        }
+
+        .job-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .job-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .job-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .job-company {
+            color: #667eea;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .job-location {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .job-platform {
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-left: auto;
+        }
+
+        .job-details {
+            margin-bottom: 15px;
+        }
+
+        .job-salary {
+            color: #28a745;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .job-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .apply-btn {
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-weight: 600;
+            display: inline-block;
+            transition: background-color 0.3s ease;
+        }
+
+        .apply-btn:hover {
+            background: #218838;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .search-card {
+                padding: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 InternFlow Jobs</h1>
+            <p>Find your dream job across multiple platforms</p>
+        </div>
+
+        <div class="search-card">
+            <form id="jobSearchForm">
+                <div class="form-group">
+                    <label for="jobTitle">Job Title / Keywords *</label>
+                    <input type="text" id="jobTitle" name="jobTitle" placeholder="e.g., Python Developer, Data Scientist, Internship" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="location">Location</label>
+                        <input type="text" id="location" name="location" placeholder="e.g., New York, Remote, California">
+                    </div>
+                    <div class="form-group">
+                        <label for="maxResults">Max Results Per Platform</label>
+                        <select id="maxResults" name="maxResults">
+                            <option value="10">10</option>
+                            <option value="20" selected>20</option>
+                            <option value="30">30</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="useSelenium" name="useSelenium">
+                            <label for="useSelenium">Use browser automation (more sources)</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="removeDuplicates" name="removeDuplicates" checked>
+                            <label for="removeDuplicates">Remove duplicate listings</label>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="search-btn" id="searchBtn">
+                    🔍 Search Jobs
+                </button>
+            </form>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <h3>Searching for jobs...</h3>
+            <p>This may take a few moments while we scan multiple job platforms</p>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="results" class="results">
+            <div class="results-header">
+                <h2 id="resultsTitle">Search Results</h2>
+                <p id="resultsCount"></p>
+            </div>
+            <div id="jobsContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://internflowjobs.onrender.com';
+        
+        const form = document.getElementById('jobSearchForm');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const results = document.getElementById('results');
+        const jobsContainer = document.getElementById('jobsContainer');
+        const searchBtn = document.getElementById('searchBtn');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await searchJobs();
+        });
+
+        async function searchJobs() {
+            // Show loading, hide results and errors
+            loading.style.display = 'block';
+            results.classList.remove('show');
+            error.style.display = 'none';
+            searchBtn.disabled = true;
+            searchBtn.textContent = '🔍 Searching...';
+
+            // Get form data
+            const formData = new FormData(form);
+            const params = new URLSearchParams();
+            
+            params.append('job_title', formData.get('jobTitle'));
+            if (formData.get('location')) params.append('location', formData.get('location'));
+            params.append('max_results_per_source', formData.get('maxResults'));
+            params.append('use_selenium', formData.get('useSelenium') ? 'true' : 'false');
+            params.append('remove_duplicates', formData.get('removeDuplicates') ? 'true' : 'false');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/search?${params}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Search failed');
+                }
+
+                displayResults(data);
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                loading.style.display = 'none';
+                searchBtn.disabled = false;
+                searchBtn.textContent = '🔍 Search Jobs';
+            }
+        }
+
+        function displayResults(data) {
+            const resultsTitle = document.getElementById('resultsTitle');
+            const resultsCount = document.getElementById('resultsCount');
+
+            resultsTitle.textContent = `Found ${data.total_jobs} Jobs`;
+            resultsCount.textContent = `Searched for "${data.search_params.job_title}"${data.search_params.location ? ` in ${data.search_params.location}` : ''}`;
+
+            jobsContainer.innerHTML = '';
+
+            if (data.jobs.length === 0) {
+                jobsContainer.innerHTML = '<div class="job-card"><p>No jobs found. Try different keywords or location.</p></div>';
+            } else {
+                data.jobs.forEach(job => {
+                    const jobCard = createJobCard(job);
+                    jobsContainer.appendChild(jobCard);
+                });
+            }
+
+            results.classList.add('show');
+        }
+
+        function createJobCard(job) {
+            const card = document.createElement('div');
+            card.className = 'job-card';
+
+            const truncatedDescription = job.description.length > 300 
+                ? job.description.substring(0, 300) + '...' 
+                : job.description;
+
+            card.innerHTML = `
+                <div class="job-header">
+                    <div>
+                        <div class="job-title">${escapeHtml(job.title)}</div>
+                        <div class="job-company">${escapeHtml(job.company)}</div>
+                        <div class="job-location">📍 ${escapeHtml(job.location)}</div>
+                    </div>
+                    <div class="job-platform">${escapeHtml(job.platform)}</div>
+                </div>
+                <div class="job-details">
+                    ${job.salary ? `<div class="job-salary">💰 ${escapeHtml(job.salary)}</div>` : ''}
+                    ${job.posted_date ? `<div class="job-posted">📅 Posted: ${escapeHtml(job.posted_date)}</div>` : ''}
+                    <div class="job-description">${escapeHtml(truncatedDescription)}</div>
+                </div>
+                <a href="${job.apply_link}" target="_blank" class="apply-btn">Apply Now →</a>
+            `;
+
+            return card;
+        }
+
+        function showError(message) {
+            error.textContent = `Error: ${message}`;
+            error.style.display = 'block';
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Load example searches on page load
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const jobTitle = urlParams.get('job_title');
+            const location = urlParams.get('location');
+            
+            if (jobTitle) {
+                document.getElementById('jobTitle').value = jobTitle;
+                if (location) document.getElementById('location').value = location;
+                searchJobs();
+            }
+        });
+    </script>
+</body>
+</html>
