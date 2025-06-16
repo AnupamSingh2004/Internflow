@@ -11,6 +11,31 @@ from profiles.models import StudentProfile, CompanyProfile
 
 User = get_user_model()
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'first_name', 'last_name', 'role', 'is_active', 'date_joined']
+        read_only_fields = ['id', 'is_active', 'date_joined']
+        extra_kwargs = {
+            'email': {'required': True},
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+        }
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        
+        # Add profile data based on user role
+        if instance.role == 'student' and hasattr(instance, 'studentprofile'):
+            from profiles.serializers import StudentProfileSerializer
+            representation['profile'] = StudentProfileSerializer(instance.studentprofile).data
+        
+        elif instance.role == 'company' and hasattr(instance, 'companyprofile'):
+            from profiles.serializers import CompanyProfileSerializer
+            representation['profile'] = CompanyProfileSerializer(instance.companyprofile).data
+        
+        return representation
+
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)

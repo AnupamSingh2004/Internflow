@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/auth/', include('user_auth.urls')),
     path('api/profile/', include('profiles.urls')),
     path('api/parse-resume/', ResumeParseView.as_view(), name='parse-resume'),
+    path('api/', include('competitions.urls')),
 ]
 
 if settings.DEBUG:

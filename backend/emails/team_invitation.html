@@ -1,0 +1,27 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Team Invitation - {{ team.competition.title }}{% endblock %}
+{% block header %}You've Been Invited to Join {{ team.name }}{% endblock %}
+
+{% block content %}
+    <p>Hello,</p>
+    
+    <p>You've been invited by <strong>{{ leader.get_full_name|default:leader.username }}</strong> 
+    to join their team <strong>{{ team.name }}</strong> for the competition 
+    <strong>{{ team.competition.title }}</strong>.</p>
+    
+    <p>The competition runs from {{ team.competition.start_date|date:"F j, Y" }} 
+    to {{ team.competition.end_date|date:"F j, Y" }}.</p>
+    
+    <div class="divider"></div>
+    
+    <p>To respond to this invitation, please visit: <a href="{{ accept_url }}">{{ accept_url }}</a></p>
+    
+    <p>If the buttons don't work, you can copy and paste these links into your browser:</p>
+    <p>Accept: <a href="{{ accept_url }}">{{ accept_url }}</a></p>
+    <p>Decline: <a href="{{ reject_url }}">{{ reject_url }}</a></p>
+    
+    <div class="divider"></div>
+    
+    <p>If you didn't expect to receive this invitation, you can safely ignore this email.</p>
+{% endblock %}

@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     RegisterView, LoginView, EmailVerifyView, UserProfileView,
-    PasswordResetRequestView, PasswordResetConfirmView,VerifyCompanyView,DeleteUserView,UserListView, update_user_role,get_current_user,refresh_token
+    PasswordResetRequestView, PasswordResetConfirmView,VerifyCompanyView,DeleteUserView,UserListView,get_user_by_id, update_user_role,get_current_user,refresh_token
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
 
@@ -22,4 +22,5 @@ urlpatterns = [
     path('admin/companies/<str:user_id>/verify/', VerifyCompanyView.as_view(), name='verify-company'),
     path('me/', get_current_user, name='current_user'),
     path('refresh/', refresh_token, name='refresh_token'), 
+    path('users/<int:user_id>/', get_user_by_id, name='get-user-by-id'),
 ]

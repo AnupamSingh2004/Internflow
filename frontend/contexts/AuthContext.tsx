@@ -5,9 +5,10 @@ import React, {
   useEffect,
   ReactNode,
   useContext,
+  use,
 } from "react";
-import { apiRequest } from "../lib/api";
-import { useRouter } from "next/navigation"; // For App Router
+import { apiRequest } from "@/lib/api";
+import { useRouter } from "next/navigation";
 
 interface User {
   id: number;
@@ -15,6 +16,9 @@ interface User {
   email: string;
   first_name?: string;
   last_name?: string;
+  role: "student" | "company" | "admin";
+  company_name?: string; // For company users
+  college_name?: string;
 }
 
 interface AuthContextType {
@@ -22,7 +26,7 @@ interface AuthContextType {
   accessToken: string | null;
   isLoading: boolean;
   login: (usernameOrEmail: string, password: string) => Promise<void>;
-  signup: (userData: any) => Promise<void>; // Define more specific type for userData
+  signup: (userData: any) => Promise<void>;
   logout: () => void;
   verifyEmail: (uidb64: string, token: string) => Promise<any>;
   requestPasswordReset: (email: string) => Promise<any>;
@@ -32,6 +36,7 @@ interface AuthContextType {
     newPassword: string,
     confirmNewPassword: string
   ) => Promise<any>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,12 +50,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initializeAuth = async () => {
       const storedToken = localStorage.getItem("accessToken");
-      const storedUser = localStorage.getItem("user");
 
-      if (storedToken && storedUser) {
+      if (storedToken) {
         setAccessToken(storedToken);
-        setUser(JSON.parse(storedUser));
-        // Optionally: verify token with backend here to ensure it's still valid
+        try {
+          // Verify token and get fresh user data
+          const userData = await apiRequest("/auth/me/", "GET");
+          setUser(userData);
+        } catch (error) {
+          console.error("Token verification failed:", error);
+          // Clear invalid token
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("user");
+          setAccessToken(null);
+          setUser(null);
+        }
       }
       setIsLoading(false);
     };
@@ -58,24 +72,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const handleAuthSuccess = (data: any) => {
+    const userData = {
+      id: data.user.id,
+      username: data.user.username,
+      email: data.user.email,
+      first_name: data.user.first_name,
+      last_name: data.user.last_name,
+      role: data.user.role,
+      // Role-specific fields
+      ...(data.user.role === "company" && {
+        company_name: data.user.company_name,
+      }),
+      ...(data.user.role === "student" && {
+        college_name: data.user.college_name,
+      }),
+    };
     setAccessToken(data.access);
-    setUser(data.user);
+    setUser(userData);
     localStorage.setItem("accessToken", data.access);
     localStorage.setItem("user", JSON.stringify(data.user));
-    // Potentially store refresh token in localStorage or httpOnly cookie (more complex setup)
-    // localStorage.setItem('refreshToken', data.refresh);
+    if (data.refresh) {
+      localStorage.setItem("refreshToken", data.refresh);
+    }
   };
 
   const login = async (usernameOrEmail: string, password: string) => {
-        const data = await apiRequest('/login/', 'POST', { username_or_email: usernameOrEmail, password });
-        handleAuthSuccess(data);
-    };
+    try {
+      const data = await apiRequest("/auth/login/", "POST", {
+        username_or_email: usernameOrEmail,
+        password,
+      });
+      handleAuthSuccess(data);
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw error;
+    }
+  };
 
   const signup = async (userData: any) => {
-    // { username, email, password, password2, first_name?, last_name? }
-    const data = await apiRequest("/register/", "POST", userData);
-    // User needs to verify email, so not calling handleAuthSuccess here
-    return data; // Return response for message display
+    try {
+      const data = await apiRequest("/auth/register/", "POST", userData);
+      return data;
+    } catch (error) {
+      console.error("Signup failed:", error);
+      throw error;
+    }
   };
 
   const logout = () => {
@@ -83,21 +124,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setAccessToken(null);
     localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
-    // Optionally: call a backend logout endpoint to blacklist refresh token if using SimpleJWT blacklist app
-    // await apiRequest('/logout/', 'POST', { refresh: localStorage.getItem('refreshToken') });
-    // localStorage.removeItem('refreshToken');
+    localStorage.removeItem("refreshToken");
     router.push("/login");
   };
 
   const verifyEmail = async (uidb64: string, token: string) => {
-    // The Django view is GET, but we make a request from frontend.
-    // Or, the Django view could redirect to a frontend page upon success.
-    // For now, let's assume the Django GET view returns JSON.
-    return apiRequest(`/verify-email/${uidb64}/${token}/`, "GET");
+    try {
+      return await apiRequest(`/auth/verify-email/${uidb64}/${token}/`, "GET");
+    } catch (error) {
+      console.error("Email verification failed:", error);
+      throw error;
+    }
   };
 
   const requestPasswordReset = async (email: string) => {
-    return apiRequest("/password-reset/request/", "POST", { email });
+    try {
+      return await apiRequest("/auth/password-reset/request/", "POST", {
+        email,
+      });
+    } catch (error) {
+      console.error("Password reset request failed:", error);
+      throw error;
+    }
   };
 
   const confirmPasswordReset = async (
@@ -106,12 +154,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     new_password: string,
     confirm_new_password: string
   ) => {
-    return apiRequest("/password-reset/confirm/", "POST", {
-      uidb64,
-      token,
-      new_password,
-      confirm_new_password,
-    });
+    try {
+      return await apiRequest("/auth/password-reset/confirm/", "POST", {
+        uidb64,
+        token,
+        new_password,
+        confirm_new_password,
+      });
+    } catch (error) {
+      console.error("Password reset confirmation failed:", error);
+      throw error;
+    }
+  };
+
+  const refreshUser = async () => {
+    try {
+      if (accessToken) {
+        const userData = await apiRequest("/auth/me/", "GET");
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+      }
+    } catch (error) {
+      console.error("Failed to refresh user data:", error);
+      throw error;
+    }
   };
 
   return (
@@ -126,6 +192,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         verifyEmail,
         requestPasswordReset,
         confirmPasswordReset,
+        refreshUser,
       }}
     >
       {children}

@@ -1,3 +1,4 @@
+#profiles/models.py
 from django.db import models
 from django.contrib.auth import get_user_model
 from django_countries.fields import CountryField
@@ -119,3 +120,4 @@ class ProjectSkill(models.Model):
     
     def __str__(self):
         return f"{self.skill} for {self.project.title}"
+    

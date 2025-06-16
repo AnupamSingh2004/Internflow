@@ -10,6 +10,7 @@ from .serializers import (
 from .utils import send_verification_email, send_password_reset_email, account_activation_token
 from django.utils.http import urlsafe_base64_decode
 from django.utils.encoding import force_str
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 import logging
 from django.contrib.sessions.models import Session
@@ -425,6 +426,38 @@ class RegisterView(generics.CreateAPIView):
         
         return Response(response_data, status=status.HTTP_201_CREATED)
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_by_id(request, user_id):
+    """
+    Get user details by ID
+    """
+    try:
+        user = get_object_or_404(User, id=user_id)
+        
+        # Build user data similar to your existing UserListView
+        user_data = {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'role': user.role,
+        }
+        
+        # Add company profile if user is a company
+        if user.role == 'company' and hasattr(user, 'company_profile'):
+            user_data['company_profile'] = {
+                'company_name': user.company_profile.company_name,
+                'verified': user.company_profile.verified,
+            }
+        
+        return Response(user_data, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 class LoginView(generics.GenericAPIView):
     permission_classes = (permissions.AllowAny,)

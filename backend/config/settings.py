@@ -2,6 +2,16 @@
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
+from django.utils.functional import Promise
+from django.utils.encoding import force_str
+from rest_framework.utils import representation
+
+def smart_repr(value):
+    if isinstance(value, Promise):
+        value = force_str(value)
+    return representation.smart_repr(value)
+
+representation.smart_repr = smart_repr
 
 load_dotenv() # Load environment variables from .env file
 
@@ -22,12 +32,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework_simplejwt.token_blacklist',
     # Third-party apps
+    'django_filters',
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'django_countries',
-    'profiles',
     # Your apps
+    'competitions',
+    'profiles',
     'user_auth',
 ]
 
@@ -179,6 +191,10 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD =  os.getenv("EMAIL_HOST_PASSWORD") # Use app password for Gmail
 DEFAULT_FROM_EMAIL = 'noreply@internflow.com'
+FRONTEND_URL = os.getenv('FRONTEND_URL', default='http://localhost:3000')
+SITE_NAME = os.getenv('SITE_NAME', default='InternFlow')
+SITE_URL = os.getenv('SITE_URL', default='http://localhost:3000')
+LOGO_URL = os.getenv('LOGO_URL', default='/media/logo/logo.png')
 
 # Frontend URL for email links
 FRONTEND_VERIFY_EMAIL_URL = f"{os.getenv('FRONTEND_URL', 'http://localhost:3000')}/verify-email"
