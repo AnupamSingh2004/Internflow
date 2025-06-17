@@ -138,10 +138,7 @@ export default function JobsPage() {
     transition: { duration: 0.5 },
   };
 
-  const truncateDescription = (
-    description: string,
-    maxLength: number = 100
-  ) => {
+  const truncateDescription = (description: string, maxLength: number = 100) => {
     if (description.length <= maxLength) return description;
     return description.slice(0, maxLength) + "...";
   };
@@ -368,9 +365,7 @@ export default function JobsPage() {
                               </div>
                               <div className="flex items-center space-x-1">
                                 <Clock className="w-4 h-4" />
-                                <span>
-                                  {job.posted_date || "Recently posted"}
-                                </span>
+                                <span>{job.posted_date || "Recently posted"}</span>
                               </div>
                               {job.salary && (
                                 <div className="flex items-center space-x-1">
@@ -387,9 +382,7 @@ export default function JobsPage() {
                             <div className="flex items-center space-x-4 text-sm text-gray-600">
                               <div className="flex items-center space-x-1">
                                 <Calendar className="w-4 h-4" />
-                                <span>
-                                  {job.posted_date || "Recently posted"}
-                                </span>
+                                <span>{job.posted_date || "Recently posted"}</span>
                               </div>
                             </div>
                             <motion.div
@@ -417,16 +410,12 @@ export default function JobsPage() {
                   </DialogTrigger>
                   <DialogContent className="max-w-3xl">
                     <DialogHeader>
-                      <DialogTitle className="text-2xl font-bold">
-                        {selectedJob?.title}
-                      </DialogTitle>
+                      <DialogTitle className="text-2xl font-bold">{selectedJob?.title}</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4">
                       <div className="flex items-center space-x-2">
                         <Building2 className="w-5 h-5 text-gray-600" />
-                        <p className="text-emerald-600 font-medium">
-                          {selectedJob?.company}
-                        </p>
+                        <p className="text-emerald-600 font-medium">{selectedJob?.company}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <Badge
@@ -480,12 +469,10 @@ export default function JobsPage() {
                       </div>
                       <Separator />
                       <div>
-                        <h3 className="text-lg font-semibold mb-2">
-                          Description
-                        </h3>
-                        <p className="text-gray-600 leading-relaxed">
-                          {selectedJob?.description}
-                        </p>
+                        <h3 className="text-lg font-semibold mb-2">Description</h3>
+                        <div className="max-h-96 overflow-y-auto pr-4">
+                          <p className="text-gray-600 leading-relaxed">{selectedJob?.description}</p>
+                        </div>
                       </div>
                       <div className="flex justify-end">
                         <Button
@@ -510,7 +497,6 @@ export default function JobsPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Trending Skills */}
             <motion.div {...fadeInUp} transition={{ delay: 0.3 }}>
               <Card className="shadow-lg border-0">
                 <CardHeader>
@@ -545,7 +531,6 @@ export default function JobsPage() {
               </Card>
             </motion.div>
 
-            {/* Salary Insights */}
             <motion.div {...fadeInUp} transition={{ delay: 0.4 }}>
               <Card className="shadow-lg border-0">
                 <CardHeader>
@@ -586,7 +571,6 @@ export default function JobsPage() {
               </Card>
             </motion.div>
 
-            {/* Quick Apply */}
             <motion.div {...fadeInUp} transition={{ delay: 0.5 }}>
               <Card className="shadow-lg border-0 bg-gradient-to-r from-emerald-500 to-teal-600 text-white">
                 <CardContent className="p-6 text-center">

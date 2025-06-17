@@ -86,7 +86,7 @@ class JobScraperAPI:
         return jobs
 
     def search_reed_jobs(self, job_title: str, location: str = "", max_results: int = 20) -> List[Job]:
-        """Search jobs using Reed API (UK-focused)"""
+        """Search jobs using Reed API (UK-focused) with full descriptions"""
         if not self.reed_api_key:
             logger.warning("Reed API key not found. Get it from: https://www.reed.co.uk/developers")
             return []
@@ -101,16 +101,31 @@ class JobScraperAPI:
         }
         
         try:
+            # First get the job listings
             response = requests.get(base_url, params=params, auth=(self.reed_api_key, ''))
             response.raise_for_status()
             data = response.json()
             
             for job_data in data.get('results', []):
+                job_id = job_data.get('jobId')
+                full_description = job_data.get('jobDescription', '')
+                
+                # Try to get full description if it seems truncated
+                if job_id and ('...' in full_description or len(full_description) < 500):
+                    try:
+                        detail_url = f"https://www.reed.co.uk/api/1.0/jobs/{job_id}"
+                        detail_response = requests.get(detail_url, auth=(self.reed_api_key, ''))
+                        detail_response.raise_for_status()
+                        detail_data = detail_response.json()
+                        full_description = detail_data.get('jobDescription', full_description)
+                    except Exception as e:
+                        logger.warning(f"Couldn't fetch full description for job {job_id}: {str(e)}")
+                
                 job = Job(
                     title=job_data.get('jobTitle', 'N/A'),
                     company=job_data.get('employerName', 'N/A'),
                     location=job_data.get('locationName', 'N/A'),
-                    description=job_data.get('jobDescription', 'N/A'),
+                    description=full_description,
                     apply_link=job_data.get('jobUrl', 'N/A'),
                     source_url=job_data.get('jobUrl', 'N/A'),
                     platform="Reed",
