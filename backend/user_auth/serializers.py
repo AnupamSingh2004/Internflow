@@ -6,42 +6,116 @@ from django.utils.encoding import force_str
 from rest_framework import serializers, exceptions
 from .tokens import account_activation_token
 from .utils import account_activation_token
+from profiles.models import StudentProfile, CompanyProfile
 
 
 User = get_user_model()
 
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'first_name', 'last_name', 'role', 'is_active', 'date_joined']
+        read_only_fields = ['id', 'is_active', 'date_joined']
+        extra_kwargs = {
+            'email': {'required': True},
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+        }
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        
+        # Add profile data based on user role
+        if instance.role == 'student' and hasattr(instance, 'studentprofile'):
+            from profiles.serializers import StudentProfileSerializer
+            representation['profile'] = StudentProfileSerializer(instance.studentprofile).data
+        
+        elif instance.role == 'company' and hasattr(instance, 'companyprofile'):
+            from profiles.serializers import CompanyProfileSerializer
+            representation['profile'] = CompanyProfileSerializer(instance.companyprofile).data
+        
+        return representation
+
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
-    password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'}, label="Confirm password")
+    password = serializers.CharField(write_only=True)
+    password2 = serializers.CharField(write_only=True)
+    
+    # Student specific fields
+    college = serializers.CharField(required=False, write_only=True)
+    degree = serializers.CharField(required=False, write_only=True)
+    branch = serializers.CharField(required=False, write_only=True)
+    graduation_year = serializers.IntegerField(required=False, write_only=True)
+    
+    # Company specific fields
+    company_name = serializers.CharField(required=False, write_only=True)
+    website = serializers.URLField(required=False, write_only=True)
+    industry = serializers.CharField(required=False, write_only=True)
+    location = serializers.CharField(required=False, write_only=True)
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'password2', 'first_name', 'last_name')
-        extra_kwargs = {
-            'first_name': {'required': False},
-            'last_name': {'required': False},
-        }
-
-    def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({"password": "Password fields didn't match."})
-        if User.objects.filter(email=attrs['email']).exists():
-            raise serializers.ValidationError({"email": "Email is already in use."})
-        if User.objects.filter(username=attrs['username']).exists():
-            raise serializers.ValidationError({"username": "Username is already taken."})
-        return attrs
-
+        fields = [
+            'username', 'email', 'password', 'password2',
+            'first_name', 'last_name', 'role',
+            # Student fields
+            'college', 'degree', 'branch', 'graduation_year',
+            # Company fields
+            'company_name', 'website', 'industry', 'location'
+        ]
+    
+    def validate(self, data):
+        if data['password'] != data['password2']:
+            raise serializers.ValidationError("Passwords don't match")
+        
+        role = data.get('role')
+        
+        # Validate student fields
+        if role == 'student':
+            if not data.get('college'):
+                raise serializers.ValidationError({"college": "College is required for students"})
+            if not data.get('degree'):
+                raise serializers.ValidationError({"degree": "Degree is required for students"})
+        
+        # Validate company fields
+        elif role == 'company':
+            if not data.get('company_name'):
+                raise serializers.ValidationError({"company_name": "Company name is required"})
+            if not data.get('website'):
+                raise serializers.ValidationError({"website": "Website is required"})
+        
+        return data
+    
     def create(self, validated_data):
-        user = User.objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            first_name=validated_data.get('first_name', ''),
-            last_name=validated_data.get('last_name', '')
-        )
-        user.set_password(validated_data['password'])
-        user.is_active = False # Deactivate account till it is verified
-        user.save()
+        # Remove password2 and profile fields before user creation
+        validated_data.pop('password2')
+        role = validated_data.get('role', 'student')
+        
+        # Separate profile data
+        profile_data = {}
+        
+        if role == 'student':
+            student_fields = ['college', 'degree', 'branch', 'graduation_year']
+            for field in student_fields:
+                if field in validated_data:
+                    profile_data[field] = validated_data.pop(field)
+        
+        elif role == 'company':
+            company_fields = ['company_name', 'website', 'industry', 'location']
+            for field in company_fields:
+                if field in validated_data:
+                    profile_data[field] = validated_data.pop(field)
+        
+        # Create user (only with user fields)
+        user = User.objects.create_user(**validated_data)
+        
+        # Create appropriate profile
+        if role == 'student':
+            StudentProfile.objects.create(user=user, **profile_data)
+        elif role == 'company':
+            CompanyProfile.objects.create(user=user, **profile_data)
+        
         return user
+
 
 class LoginSerializer(serializers.Serializer):
     username_or_email = serializers.CharField()

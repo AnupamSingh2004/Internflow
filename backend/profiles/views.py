@@ -5,15 +5,14 @@ from django.contrib.auth import get_user_model
 from .models import UserProfile, Education, Skill, Certification, Project
 from .serializers import (
     UserProfileSerializer, EducationSerializer, 
-    SkillSerializer, CertificationSerializer, ProjectSerializer
+    SkillSerializer, CertificationSerializer, ProjectSerializer,StudentProfile,CompanyProfile,StudentProfileSerializer,CompanyProfileSerializer
 )
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import SessionAuthentication, TokenAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
-
 User = get_user_model()
-
+from django.core.exceptions import PermissionDenied
 
 
 
@@ -140,19 +139,67 @@ class CompleteProfileView(APIView):
     
     def get(self, request):
         user = request.user
+        response_data = {}
+        
+        # Get base profile information
         profile = UserProfile.objects.filter(user=user).first()
-        educations = Education.objects.filter(user=user)
-        skills = Skill.objects.filter(user=user)
-        certifications = Certification.objects.filter(user=user)
-        projects = Project.objects.filter(user=user)
+        response_data['profile'] = UserProfileSerializer(
+            profile, 
+            context={'request': request}
+        ).data if profile else None
         
-        # Ensure proper serialization by using context if needed
-        data = {
-            'profile': UserProfileSerializer(profile, context={'request': request}).data if profile else None,
-            'educations': EducationSerializer(educations, many=True, context={'request': request}).data,
-            'skills': SkillSerializer(skills, many=True, context={'request': request}).data,
-            'certifications': CertificationSerializer(certifications, many=True, context={'request': request}).data,
-            'projects': ProjectSerializer(projects, many=True, context={'request': request}).data,
-        }
-        
-        return Response(data)
+        # Get role-specific profile
+        if user.is_student():
+            student_profile = StudentProfile.objects.filter(user=user).first()
+            response_data['student_profile'] = StudentProfileSerializer(
+                student_profile,
+                context={'request': request}
+            ).data if student_profile else None
+            
+            # Include student-specific data
+            educations = Education.objects.filter(user=user)
+            skills = Skill.objects.filter(user=user)
+            certifications = Certification.objects.filter(user=user)
+            projects = Project.objects.filter(user=user)
+            
+            response_data.update({
+                'educations': EducationSerializer(educations, many=True, context={'request': request}).data,
+                'skills': SkillSerializer(skills, many=True, context={'request': request}).data,
+                'certifications': CertificationSerializer(certifications, many=True, context={'request': request}).data,
+                'projects': ProjectSerializer(projects, many=True, context={'request': request}).data,
+            })
+            
+        elif user.is_company():
+            company_profile = CompanyProfile.objects.filter(user=user).first()
+            response_data['company_profile'] = CompanyProfileSerializer(
+                company_profile,
+                context={'request': request}
+            ).data if company_profile else None
+            
+            # Company-specific data can be added here if needed
+            # For example, posted jobs, etc.
+            
+        return Response(response_data)
+    
+
+class StudentProfileUpdateView(generics.UpdateAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = StudentProfileSerializer
+    
+    def get_object(self):
+        user = self.request.user
+        if not user.is_student():
+            raise PermissionDenied("You must be a student to access this profile.")
+        return StudentProfile.objects.get(user=user)
+
+class CompanyProfileUpdateView(generics.UpdateAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = CompanyProfileSerializer
+    
+    def get_object(self):
+        user = self.request.user
+        if not user.is_company():
+            raise PermissionDenied("You must be a company to access this profile.")
+        return CompanyProfile.objects.get(user=user)

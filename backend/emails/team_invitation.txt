@@ -1,0 +1,24 @@
+TEAM INVITATION
+================
+
+You've been invited to join a competition team!
+
+INVITATION DETAILS:
+- Team: {{ team.name }}
+- Competition: {{ competition.title }}
+- Team Leader: {{ team.leader.get_full_name|default:team.leader.username }}
+{% if competition.description %}
+- Competition Description: {{ competition.description|truncatewords:50 }}
+{% endif %}
+- Registration Deadline: {{ competition.registration_end_date|date:"F d, Y" }}
+
+{{ team.leader.get_full_name|default:team.leader.username }} has invited you to join their team "{{ team.name }}" for the competition "{{ competition.title }}".
+
+To respond to this invitation, please visit: {{ accept_url }}
+
+IMPORTANT: This invitation will expire when the competition registration period ends.
+
+If you have any questions, please contact the team leader directly.
+
+---
+This is an automated message. Please do not reply to this email.

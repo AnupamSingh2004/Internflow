@@ -1,0 +1,26 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Invitation Accepted - {{ team.competition.title }}{% endblock %}
+{% block header %}Invitation Accepted by {{ user.get_full_name|default:user.username }}{% endblock %}
+
+{% block content %}
+    <p>Hello {{ team.leader.get_full_name|default:team.leader.username }},</p>
+    
+    <p>We're happy to inform you that <strong>{{ user.get_full_name|default:user.username }}</strong> 
+    has accepted your invitation to join <strong>{{ team.name }}</strong> for the competition 
+    <strong>{{ team.competition.title }}</strong>.</p>
+    
+    <p>The team now has {{ team.members.count|add:1 }} members (including yourself).</p>
+    
+    <div class="divider"></div>
+    
+    <p>You can view and manage your team at:</p>
+    
+    <div style="text-align: center; margin: 25px 0;">
+        <a href="{{ settings.FRONTEND_URL }}/competitions/{{ team.competition.id }}/teams" class="button">
+            View Team
+        </a>
+    </div>
+    
+    <p>Good luck with the competition!</p>
+{% endblock %}

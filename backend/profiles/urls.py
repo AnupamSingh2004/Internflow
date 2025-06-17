@@ -3,7 +3,7 @@ from .views import (
     UserProfileDetailView, EducationListView, EducationDetailView,
     SkillListView, SkillDetailView, CertificationListView,
     CertificationDetailView, ProjectListView, ProjectDetailView,
-    CompleteProfileView,ProfilePictureUploadView
+    CompleteProfileView,ProfilePictureUploadView,StudentProfileUpdateView,CompanyProfileUpdateView
 )
 
 urlpatterns = [
@@ -18,5 +18,7 @@ urlpatterns = [
     path('projects/<int:pk>/', ProjectDetailView.as_view(), name='project-detail'),
     path('profile-picture/', ProfilePictureUploadView.as_view(), name='profile-picture-upload'),
     path('complete-profile/', CompleteProfileView.as_view(), name='complete-profile'),
+    path('student-profile/', StudentProfileUpdateView.as_view(), name='student-profile-update'),
+    path('company-profile/', CompanyProfileUpdateView.as_view(), name='company-profile-update'),
     
 ]

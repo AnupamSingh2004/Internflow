@@ -1,0 +1,24 @@
+{% extends "emails/base_email.html" %}
+
+{% block title %}Invitation Declined - {{ team.competition.title }}{% endblock %}
+{% block header %}Invitation Declined by {{ user.get_full_name|default:user.username }}{% endblock %}
+
+{% block content %}
+    <p>Hello {{ team.leader.get_full_name|default:team.leader.username }},</p>
+    
+    <p>We're sorry to inform you that <strong>{{ user.get_full_name|default:user.username }}</strong> 
+    has declined your invitation to join <strong>{{ team.name }}</strong> for the competition 
+    <strong>{{ team.competition.title }}</strong>.</p>
+    
+    <div class="divider"></div>
+    
+    <p>You can invite other participants to your team at:</p>
+    
+    <div style="text-align: center; margin: 25px 0;">
+        <a href="{{ settings.FRONTEND_URL }}/competitions/{{ team.competition.id }}/teams" class="button">
+            Manage Team
+        </a>
+    </div>
+    
+    <p>Don't worry, there are plenty of other talented participants who might be interested in joining your team!</p>
+{% endblock %}
